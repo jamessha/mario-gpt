@@ -52,3 +52,9 @@ venv
 checkpoints/*
 wandb/*
 mlruns/*
+
+# checkpoints
+*/iteration_*
+*.bin
+config.json
+generation_config.json

@@ -10,10 +10,11 @@ import torch
 from accelerate import Accelerator
 from PIL import ImageDraw
 from torch.nn import CrossEntropyLoss  # noqa
+from torch.optim import AdamW
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset
 from tqdm import tqdm
-from transformers import AdamW, PreTrainedModel, get_linear_schedule_with_warmup
+from transformers import PreTrainedModel, get_linear_schedule_with_warmup
 
 from mario_gpt.dataset import MarioDataset
 from mario_gpt.lm import BaseMarioLM, MarioLM
@@ -206,31 +207,31 @@ class MarioGPTTrainer:
             bar.set_description(f"{logs}")
             self.accelerator.log({**logs, **grad_dict}, step=i)
 
-            if (i + 1) % self.config.eval_iteration == 0:
-                print("Evaluating...")
-                with torch.no_grad():
-                    try:
-                        if self.config.mask_proportion <= 0.0:
-                            (
-                                prompt,
-                                _,
-                                _,
-                                _,
-                            ) = self.mario_lm.prompter(sample_prompt=True)
-                            out = self.mario_lm.sample(
-                                prompts=[prompt],
-                                num_steps=1400,
-                                temperature=2.0,
-                                use_tqdm=True,
-                            )
-                            draw = ImageDraw.Draw(out.img)
-                            draw.text((0, 0), prompt, (0, 0, 0))
-                            tracker = self.accelerator.get_tracker("tensorboard")
-                            tracker.add_image(
-                                "image", np.array(out.img), i, dataformats="HWC"
-                            )
-                    except Exception as e:
-                        print("Failed to evaluate!", e)
-                model.train()
+            #if (i + 1) % self.config.eval_iteration == 0:
+            #    print("Evaluating...")
+            #    with torch.no_grad():
+            #        try:
+            #            if self.config.mask_proportion <= 0.0:
+            #                (
+            #                    prompt,
+            #                    _,
+            #                    _,
+            #                    _,
+            #                ) = self.mario_lm.prompter(sample_prompt=True)
+            #                out = self.mario_lm.sample(
+            #                    prompts=[prompt],
+            #                    num_steps=1400,
+            #                    temperature=2.0,
+            #                    use_tqdm=True,
+            #                )
+            #                draw = ImageDraw.Draw(out.img)
+            #                draw.text((0, 0), prompt, (0, 0, 0))
+            #                tracker = self.accelerator.get_tracker("tensorboard")
+            #                tracker.add_image(
+            #                    "image", np.array(out.img), i, dataformats="HWC"
+            #                )
+            #        except Exception as e:
+            #            print("Failed to evaluate!", e)
+            #    model.train()
             if (i + 1) % self.config.save_iteration == 0:
                 self.mario_lm.save_model(checkpoint_path, i)

@@ -76,9 +76,9 @@ class MarioDataset(Dataset):
         self.context_len = context_len
         self.height = height
 
-        x, self.str_arr = self.convert_level_to_tensor(level_string.split("\n"))
-        self.input_ids = x["input_ids"].squeeze()
-        self.attention_masks = x["attention_mask"].squeeze()
+        self.x, self.str_arr = self.convert_level_to_tensor(level_string.split("\n"))
+        self.input_ids = self.x["input_ids"].squeeze()
+        self.attention_masks = self.x["attention_mask"].squeeze()
         if remove_start_end_tokens:
             self.input_ids = self.input_ids[1:-1]
             self.attention_masks = self.attention_masks[1:-1]
