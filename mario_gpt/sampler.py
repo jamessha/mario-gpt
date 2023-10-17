@@ -368,3 +368,120 @@ class BertSampler:
         if return_tensor:
             return sample_out, tokens
         return sample_out
+
+
+class LlamaSampler:
+    def __init__(
+        self,
+        mario_lm: BaseMarioLM,
+        temperature: float = 2.0,
+        top_k: int = 16,
+        context_len: int = 700,
+        use_tqdm: bool = False,
+        use_argmax: bool = False,
+    ):
+        self.mario_lm = mario_lm
+        self.temperature = temperature
+        self.top_k = top_k
+        self.context_len = context_len
+        self.use_tqdm = use_tqdm
+        self.use_argmax = use_argmax
+        self.logits_processor = LogitsProcessorList()
+        self.logits_warper = LogitsProcessorList(
+            [
+                TopKLogitsWarper(top_k),  # number of characters
+                TemperatureLogitsWarper(temperature),
+            ]
+        )
+
+    @property
+    def device(self) -> torch.device:
+        return self.mario_lm.device
+
+    def step(
+        self,
+        seed: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.no_grad():
+            attention_mask = torch.ones_like(seed).to(seed.device)
+            input_ids = seed
+            out = self.mario_lm.lm(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=None,
+            )
+            logits = out.logits.detach()
+            if len(logits.shape) == 2:
+                logits = logits.view(1, 1, -1)
+            next_token_logits = logits[:, -1, :]
+
+            if self.use_argmax:
+                next_tokens = next_token_logits.argmax(-1)
+            else:
+                next_token_scores = self.logits_processor(input_ids, next_token_logits)
+                next_token_scores = self.logits_warper(input_ids, next_token_scores)
+                probs = torch.nn.functional.softmax(next_token_scores, dim=-1)
+                next_tokens = torch.multinomial(probs, num_samples=1).squeeze(1)
+        return next_tokens
+
+    def sample(
+        self,
+        seed: Union[Optional[torch.Tensor], Optional[SampleOutput]] = None,
+        prompts: Optional[List[str]] = None,
+        num_steps: int = 1,
+        return_tensor: bool = False,
+    ):
+        self.mario_lm.eval()
+        context_len = self.context_len - 28
+        with torch.no_grad():
+            if seed is None:
+                seed = self.mario_lm.generate_seed(1, batch_size=len(prompts)).to(
+                    self.device
+                )
+                out_tensor = seed.to(self.device)
+            elif isinstance(seed, SampleOutput):
+                out_tensor = seed.level_tensor.to(self.device).squeeze()
+            else:
+                out_tensor = seed.to(self.device).squeeze()
+            if len(out_tensor.shape) < 2:
+                # if we pass in a single seed vector, then we repeat for each prompt
+                # Otherwise, we treat inputs as separate seed-prompt pairs
+                out_tensor = out_tensor.view(1, -1).repeat(len(prompts), 1)
+            if not self.use_tqdm:
+                bar = np.arange(num_steps)
+            else:
+                bar = tqdm(np.arange(num_steps))
+            with torch.no_grad():
+                for i in bar:
+                    inp = out_tensor * 1
+                    if len(out_tensor.shape) > 0 and out_tensor.shape[-1] > context_len:
+                        diff = inp.shape[-1] % 14  # height of mario level
+                        ctx = context_len + diff
+                        inp = inp[:, -ctx:] * 1
+                    next_tokens = self.step(
+                        inp,
+                    )
+                    out_tensor = torch.cat(
+                        [out_tensor, next_tokens.unsqueeze(-1)], dim=-1
+                    )
+                    if self.use_tqdm:
+                        bar.set_description(
+                            f"shape: {inp.shape}, {out_tensor.shape} first: {inp[0][0]}, last: {out_tensor[0][-1]}"
+                        )
+            if self.use_tqdm:
+                bar.close()
+        sample_out = SampleOutput.from_level_predictions(
+            out_tensor,
+            out_tensor[:, -num_steps:],
+            self.mario_lm.tokenizer,
+            self.mario_lm.prompter,
+        )
+        self.mario_lm.train()
+        if return_tensor:
+            return sample_out, out_tensor
+        return sample_out
+
+    def __call__(self, *args, **kwargs):
+        return self.sample(*args, **kwargs)
+
+

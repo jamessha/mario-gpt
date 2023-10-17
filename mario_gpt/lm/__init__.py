@@ -5,6 +5,7 @@ from transformers import PreTrainedModel, PreTrainedTokenizer
 # lm stuff
 from mario_gpt.lm.base import BaseMarioLM
 from mario_gpt.lm.bert import MarioBert
+from mario_gpt.lm.llama import MarioLlama
 from mario_gpt.lm.gpt import MarioGPT
 from mario_gpt.prompter import Prompter
 
@@ -21,7 +22,7 @@ def MarioLM(
     **kwargs
 ) -> Union[MarioGPT, MarioBert]:
     if not mask_model:
-        return MarioGPT(
+        return MarioLlama(
             lm=lm,
             tokenizer=tokenizer,
             context_len=context_len,

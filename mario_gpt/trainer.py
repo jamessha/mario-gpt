@@ -27,7 +27,8 @@ class TrainingConfig:
         "no"  # `no` for float32, `fp16` for automatic mixed precision
     )
     output_dir: str = (
-        "Mario-GPT2-700-context-length"  # the model name locally and on the HF Hub
+        #"Mario-GPT2-700-context-length"  # the model name locally and on the HF Hub
+        "checkpoints"  # the model name locally and on the HF Hub
     )
     learning_rate: float = 5e-4
     epsilon: float = 1e-9
@@ -133,16 +134,16 @@ class MarioGPTTrainer:
         b_labels = batch[0].view(batch_size, -1).to(device)
         attention_masks = batch[1].to(device)
 
-        encoder_hidden_states = None
-        str_levels = []
-        encoder_hidden_states = []
-        for level in b_input_ids:
-            _, encoder_hidden_state, _, str_level = self.mario_lm.prompter(level)
-            str_levels.append(str_level)
-            encoder_hidden_states.append(encoder_hidden_state)
-        encoder_hidden_states = torch.stack(encoder_hidden_states, dim=0).view(
-            batch_size, 1, -1
-        )
+        #encoder_hidden_states = None
+        #str_levels = []
+        #encoder_hidden_states = []
+        #for level in b_input_ids:
+        #    _, encoder_hidden_state, _, str_level = self.mario_lm.prompter(level)
+        #    str_levels.append(str_level)
+        #    encoder_hidden_states.append(encoder_hidden_state)
+        #encoder_hidden_states = torch.stack(encoder_hidden_states, dim=0).view(
+        #    batch_size, 1, -1
+        #)
 
         with accelerator.accumulate(model):
             model.zero_grad()
@@ -150,8 +151,8 @@ class MarioGPTTrainer:
                 input_ids=b_input_ids.to(device),
                 labels=b_labels,
                 attention_mask=attention_masks,
-                encoder_hidden_states=encoder_hidden_states,
-                token_type_ids=None,
+                #encoder_hidden_states=encoder_hidden_states,
+                #token_type_ids=None,
             )
             loss = outputs.loss
 
