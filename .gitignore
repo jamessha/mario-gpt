@@ -52,3 +52,9 @@ venv
 checkpoints/*
 wandb/*
 mlruns/*
+
+# checkpoints
+config.json
+generation_config.json
+pytorch_model.bin
+*-tokenizer*
