@@ -46,7 +46,7 @@ class MarioDataset(Dataset):
             print(
                 "No level string specified, using default string FULL_LEVEL_STR_WITH_PATHS..."
             )
-            level_string = FULL_LEVEL_STR_WITH_PATHS
+            level_string = FULL_LEVEL_STR_WITH_PATHS.replace('x', 'p')
         elif ".txt" in level_string:
             with open(level_string, "r") as file:
                 level_string = file.read()
@@ -100,6 +100,8 @@ class MarioDataset(Dataset):
     def convert_level_to_tensor(self, level: List[str]):
         str_arr = flip_and_transpose(np.array(characterize(level)))
         str_arr = "".join(join_list_of_list(str_arr))
+        # Add spaces between chars to convert to words for bert
+        str_arr = ' '.join(str_arr)
 
         x = self.tokenizer(str_arr, return_tensors="pt")
         return x, str_arr

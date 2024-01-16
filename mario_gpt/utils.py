@@ -29,6 +29,7 @@ def view_level(level_tokens, tokenizer, flatten=False):
     if flatten:
         return tokenizer.batch_decode(level_tokens.detach().cpu().squeeze())
     str_list = tokenizer.decode(level_tokens.detach().cpu()).replace("<mask>", "Y")
+    str_list = str_list.replace("[CLS]", "").replace("[UNK]", "").replace(' ', '')
     str_list = [str_list[i : i + 14] for i in range(0, len(str_list), 14)]
     for i in range(len(str_list)):
         length = len(str_list[i])
@@ -80,15 +81,20 @@ def convert_level_to_png(
         "-": Image.open(f"{tiles_dir}/smb-background.png"),
         "X": Image.open(f"{tiles_dir}/smb-unpassable.png"),
         "S": Image.open(f"{tiles_dir}/smb-breakable.png"),
+        "s": Image.open(f"{tiles_dir}/smb-breakable.png"),
         "?": Image.open(f"{tiles_dir}/smb-question.png"),
         "Q": Image.open(f"{tiles_dir}/smb-question.png"),
+        "q": Image.open(f"{tiles_dir}/smb-question.png"),
         "o": Image.open(f"{tiles_dir}/smb-coin.png"),
         "E": Image.open(f"{tiles_dir}/smb-enemy.png"),
+        "e": Image.open(f"{tiles_dir}/smb-enemy.png"),
         "<": Image.open(f"{tiles_dir}/smb-tube-top-left.png"),
         ">": Image.open(f"{tiles_dir}/smb-tube-top-right.png"),
         "[": Image.open(f"{tiles_dir}/smb-tube-lower-left.png"),
         "]": Image.open(f"{tiles_dir}/smb-tube-lower-right.png"),
-        "x": Image.open(f"{tiles_dir}/smb-path.png"),  # self-created
+        #"x": Image.open(f"{tiles_dir}/smb-path.png"),  # self-created
+        "x": Image.open(f"{tiles_dir}/smb-unpassable.png"),
+        "p": Image.open(f"{tiles_dir}/smb-path.png"),  # self-created
         "Y": Image.fromarray(
             np.uint8(np.zeros((16, 16)))
         ),  # black square,  # self-created

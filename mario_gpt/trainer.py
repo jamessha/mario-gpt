@@ -129,6 +129,7 @@ class MarioGPTTrainer:
 
         batch = train_dataset[indices]
         b_input_ids = batch[0].view(batch_size, -1).to(device)
+        b_position_ids = torch.arange(b_input_ids.size(1)).unsqueeze(0).expand_as(b_input_ids).to(device)
         b_labels = batch[0].view(batch_size, -1).to(device)
         attention_masks = batch[1].to(device)
 
@@ -146,10 +147,11 @@ class MarioGPTTrainer:
         with accelerator.accumulate(model):
             model.zero_grad()
             outputs = model(
-                input_ids=b_input_ids.to(device),
+                input_ids=b_input_ids,
+                position_ids=b_position_ids,
                 labels=b_labels,
                 attention_mask=attention_masks,
-                encoder_hidden_states=encoder_hidden_states,
+                #encoder_hidden_states=encoder_hidden_states,
                 token_type_ids=None,
             )
             loss = outputs.loss
@@ -178,7 +180,7 @@ class MarioGPTTrainer:
         if batch_size is None:
             batch_size = self.config.batch_size
 
-        self.accelerator.init_trackers("mario-gpt")
+        self.accelerator.init_trackers("mario-mobilebert")
 
         checkpoint_path = self.config.output_dir
         logdir = os.path.abspath(self.accelerator.logging_dir)

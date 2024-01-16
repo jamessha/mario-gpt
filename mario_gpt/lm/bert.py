@@ -14,6 +14,7 @@ from transformers import (
 )
 
 from mario_gpt.lm.base import BaseMarioLM
+from mario_gpt.prompter import Prompter
 
 PRETRAINED_MODEL_PATH = "shyamsn97/MarioBert-448-inpaint-context-length"
 
@@ -30,6 +31,7 @@ class MarioBert(BaseMarioLM):
         lm: Optional[PreTrainedModel] = None,
         tokenizer: Optional[PreTrainedTokenizer] = None,
         context_len: int = 448,
+        prompter: Optional[Prompter] = None,
         mask_proportion: float = 0.16,
         lm_path: Optional[str] = None,
         tokenizer_path: Optional[str] = None,
@@ -47,6 +49,10 @@ class MarioBert(BaseMarioLM):
         )
         self.mask_proportion = mask_proportion
         self.mask_portion = int(self.context_len * self.mask_proportion)
+
+        self.prompter = prompter
+        if prompter is None:
+            self.prompter = Prompter(self.tokenizer)
 
     def sample_mask(self, input_ids):
         batch_size = input_ids.shape[0]
